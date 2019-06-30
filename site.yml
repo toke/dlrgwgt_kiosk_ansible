@@ -1,0 +1,73 @@
+#!/usr/bin/ansible-playbook
+---
+- name: site role
+  hosts: all
+  become: true
+  tasks:
+    - name: Upgrade all packages to the latest version
+      apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: "Basic dependencies"
+      apt:
+        name:
+          - vim
+          - tmux
+          - git
+          - mosquitto-clients
+          - mosquitto
+          - tinc
+          - mosh
+
+    - name: Add the user 'dlrgwgt'
+      user:
+        name: dlrgwgt
+        comment: DLRG Weingarten Wache
+        group: kiosk
+    - name: Add the user 'envsensor'
+      user:
+        name: envsensor
+        comment: Sensor
+        groups: envsensor, gpio
+        system: yes
+    - name: Webcam
+      user:
+        name: webcam
+        group: webcam
+        system: yes
+    - name: admin
+      user: admin
+        group: admin, gpio, sshusers, sudoers
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+    - name: Add the user 'toke'
+      user:
+        name: toke
+        comment: Thomas Kerpe
+        group: admin, gpio, sshusers, sudoers
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+    #- name: Remove the user 'pi'
+    #user:
+      #name: pi
+      #state: absent
+
+    - name: Set authorized key, removing all the authorized key already set
+      authorized_key:
+        user: toke
+        key: '{{ item }}'
+        state: present
+      with_file:
+        - public_keys/toke_bluesky.pub
+
+    - mqtt:
+        topic: 'service/ansible/{{ ansible_hostname }}'
+        payload: 'Hello at {{ ansible_date_time.iso8601 }}'
+        qos: 0
+        retain: False
+        client_id: ans001
+      delegate_to: localhost
