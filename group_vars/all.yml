@@ -1,3 +1,19 @@
 ---
 netname: sensors
 vpn_netmask: 255.255.255.255
+
+
+
+admin_groups:
+  - sshusers
+  - gpio
+  - sudo
+  - adm
+  - dialout
+  - input
+  - spi
+  - i2c
+  - netdev
+  - plugdev
+  - video
+  - audio

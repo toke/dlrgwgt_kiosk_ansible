@@ -1,0 +1,10 @@
+---
+- name: pi role
+  hosts: pi
+  become: true
+  tasks:
+  - name: PI specific packages
+    apt:
+        name:
+            - watchdog
+  - name: Watchdog

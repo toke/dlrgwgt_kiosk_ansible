@@ -1,0 +1,12 @@
+---
+- name: vpn role
+  hosts: vpn
+  become: true
+  tasks:
+    systemd:
+        name: tinc@sensors
+        state: started
+        enabled: yes
+ 
+
+

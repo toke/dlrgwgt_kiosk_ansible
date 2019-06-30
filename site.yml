@@ -1,14 +1,16 @@
-#!/usr/bin/ansible-playbook
+#!/usr/bin/env ansible-playbook
 ---
 - name: site role
   hosts: all
   become: true
   tasks:
+    #- name: set hostname
+    #  hostname: "{{ hostname }}"
     - name: Upgrade all packages to the latest version
       apt:
         name: "*"
         state: latest
-        update_cache: yes
+        update_cache: true
         cache_valid_time: 3600
     - name: "Basic dependencies"
       apt:
@@ -20,41 +22,50 @@
           - mosquitto
           - tinc
           - mosh
-
-    - name: Add the user 'dlrgwgt'
-      user:
-        name: dlrgwgt
-        comment: DLRG Weingarten Wache
-        group: kiosk
+    - name: Add groups
+      group:
+        name: "envsensor"
+    - name: Add groups
+      group:
+        name: "sshusers"
+    - name: Add groups
+      group:
+        name: "admin"
+    - name: Add groups
+      group:
+        name: "webcam"
     - name: Add the user 'envsensor'
       user:
         name: envsensor
         comment: Sensor
-        groups: envsensor, gpio
-        system: yes
+        groups:
+          - envsensor
+          - gpio
+        system: true
     - name: Webcam
       user:
         name: webcam
         group: webcam
-        system: yes
+        system: true
     - name: admin
-      user: admin
-        group: admin, gpio, sshusers, sudoers
-        generate_ssh_key: yes
+      user:
+        name: admin
+        groups: "{{ admin_groups }}"
+        generate_ssh_key: true
         ssh_key_bits: 2048
         ssh_key_file: .ssh/id_rsa
     - name: Add the user 'toke'
       user:
         name: toke
         comment: Thomas Kerpe
-        group: admin, gpio, sshusers, sudoers
-        generate_ssh_key: yes
+        groups: "{{ admin_groups }}"
+        generate_ssh_key: true
         ssh_key_bits: 2048
         ssh_key_file: .ssh/id_rsa
-    #- name: Remove the user 'pi'
-    #user:
-      #name: pi
-      #state: absent
+    # - name: Remove the user 'pi'
+    # user:
+    #   name: pi
+    #   state: absent
 
     - name: Set authorized key, removing all the authorized key already set
       authorized_key:
@@ -64,10 +75,25 @@
       with_file:
         - public_keys/toke_bluesky.pub
 
-    - mqtt:
-        topic: 'service/ansible/{{ ansible_hostname }}'
-        payload: 'Hello at {{ ansible_date_time.iso8601 }}'
-        qos: 0
-        retain: False
-        client_id: ans001
-      delegate_to: localhost
+    - name: Set authorized key, removing all the authorized key already set
+      authorized_key:
+        user: pi
+        key: '{{ item }}'
+        state: present
+      with_file:
+        - public_keys/toke_bluesky.pub
+
+  roles:
+    - role: whiskerlabs.watchdog
+      watchdog_max_load_5: "10"
+      #watchdog_interfaces: [eth0]
+      #watchdog_interval: "10"
+#    - mqtt:
+#        topic: 'service/ansible/{{ ansible_hostname }}'
+#        payload: 'Hello at {{ ansible_date_time.iso8601 }}'
+#        qos: 0
+#        retain: false
+#        client_id: ans001
+#      delegate_to: localhost
+- import_playbook: vpn.yml
+- import_playbook: kiosk.yml
